@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DependentLayout
+    xmlns:ohos="http://schemas.huawei.com/res/ohos"
+    ohos:height="match_parent"
+    ohos:width="match_parent"
+    ohos:orientation="vertical"
+    >
+    <com.example.hit_the_plane.view.GameView
+        ohos:id="$+id:gameView"
+        ohos:height="match_parent"
+        ohos:width="match_parent"/>
+
+</DependentLayout>

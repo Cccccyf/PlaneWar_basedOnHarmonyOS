@@ -1,0 +1,100 @@
+{
+  "string": [
+    {
+      "name": "entry_MainAbility",
+      "value": "fuck"
+    },
+    {
+      "name": "entry_title",
+      "value": "用户登录"
+    },
+    {
+      "name": "mainability_description",
+      "value": "Java_Login Page Ability"
+    },
+    {
+      "name": "user",
+      "value": "用户名"
+    },
+    {
+      "name": "invalid_user",
+      "value": "不存在该名用户"
+    },
+    {
+      "name": "password",
+      "value": "密码"
+    },
+    {
+      "name": "invalid_length_password",
+      "value": "密码长度不合法"
+    },
+    {
+      "name": "login",
+      "value": "登录"
+    },
+    {
+      "name": "enrol",
+      "value": "注册"
+    },
+    {
+      "name": "start_game",
+      "value": "开始游戏"
+    },
+    {
+      "name": "open_rank_list",
+      "value": "排行榜"
+    },
+    {
+      "name": "turn_on_off_music",
+      "value": "背景音乐 on/off"
+    },
+    {
+      "name": "exit",
+      "value": "退出游戏"
+    },
+    {
+      "name": "enrol_title",
+      "value": "用户注册"
+    },
+    {
+      "name": "submit",
+      "value": "提交"
+    },
+    {
+      "name": "false_verify_code",
+      "value": "验证码错误"
+    },
+    {
+      "name": "phone_number",
+      "value": "手机号码"
+    },
+    {
+      "name": "send_verify_code",
+      "value":"发送验证码"
+    },
+    {
+      "name": "verify_code",
+      "value": "验证码"
+    },
+    {
+      "name": "find_password",
+      "value": "找回密码"
+    },
+    {
+      "name": "success",
+      "value": "SUCCESS"
+    },
+    {
+      "name": "loginSuccess",
+      "value": "成功登录"
+    },
+    {
+      "name": "fail",
+      "value": "登陆失败"
+    },
+    {
+      "name": "loginFail",
+      "value": "错误的用户名或密码"
+    }
+  ]
+}
