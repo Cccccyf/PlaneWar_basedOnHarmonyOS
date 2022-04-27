@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DependentLayout
+    xmlns:ohos="http://schemas.huawei.com/res/ohos"
+    ohos:height="56vp"
+    ohos:width="match_parent"
+    ohos:background_element="#FFF1F3F5">
+
+    <Text
+        ohos:id="$+id:title_text"
+        ohos:height="match_content"
+        ohos:width="match_content"
+        ohos:align_parent_bottom="true"
+        ohos:center_in_parent="true"
+        ohos:bottom_padding="$float:defaultPadding"
+        ohos:end_padding="$float:maxPadding"
+        ohos:text="$string:entry_title"
+        ohos:multiple_lines="true"
+        ohos:start_padding="$float:maxPadding"
+        ohos:text_color="$color:appbar_title_color"
+        ohos:background_element="$color:colorSubBackground"
+        ohos:text_size="$float:appbar_title_text_size"/>
+</DependentLayout>

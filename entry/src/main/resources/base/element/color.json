@@ -1,0 +1,32 @@
+{
+  "color": [
+    {
+      "name": "appbar_title_color",
+      "value": "#f5000000"
+    },
+    {
+      "name": "appbar_subtitle_color",
+      "value": "#99000000"
+    },
+    {
+      "name": "colorSubBackground",
+      "value": "#f1f3f5"
+    },
+    {
+      "name": "colorTabTextNormal",
+      "value": "#69000000"
+    },
+    {
+      "name": "list_divider_color",
+      "value": "#33000000"
+    },
+    {
+      "name": "primary_color",
+      "value": "#007dff"
+    },
+    {
+      "name": "primary_default",
+      "value": "#000000"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "float": [
+    {
+      "name": "appbar_title_text_size",
+      "value": "20fp"
+    },
+    {
+      "name": "appbar_subtitle_text_size",
+      "value": "14fp"
+    },
+    {
+      "name": "appbar_text_size",
+      "value": "16fp"
+    },
+    {
+      "name": "default_text_size",
+      "value": "16fp"
+    },
+    {
+      "name": "defaultPadding",
+      "value": "12vp"
+    },
+    {
+      "name": "defaultMargin",
+      "value": "12vp"
+    },
+    {
+      "name": "maxPadding",
+      "value": "24vp"
+    },
+    {
+      "name": "maxMargin",
+      "value": "24vp"
+    },
+    {
+      "name": "defaultHeight",
+      "value": "56vp"
+    },
+    {
+      "name": "heightTab",
+      "value": "24vp"
+    },
+    {
+      "name": "widthTab",
+      "value": "24vp"
+    },
+    {
+      "name": "textSizeTab",
+      "value": "10fp"
+    },
+    {
+      "name": "dividerPadding",
+      "value": "8vp"
+    },
+    {
+      "name": "componentPadding",
+      "value": "8vp"
+    },
+    {
+      "name": "margin",
+      "value": "22vp"
+    }
+  ]
+}
