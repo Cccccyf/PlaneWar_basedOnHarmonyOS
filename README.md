@@ -1,0 +1,2 @@
+# PlaneWar_basedOnHarmonyOS
+信息系统设计大作业，利用DecEcoStudio开发运行于HarmonyOs上的飞机大战游戏Demo
