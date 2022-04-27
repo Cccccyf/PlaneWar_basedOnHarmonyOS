@@ -24,7 +24,7 @@ public class PlaneSprite extends Sprite {
             canvas.drawPixelMapHolderRect(pixelMapHolder,rect, paint);
         }
         //检查是否有交集
-        if(this.life<=0)
+        if(this.life<0)
         {
             destroy();
         }

@@ -16,7 +16,7 @@ public class MiddleSprite extends Sprite{
         this.rect.top = (float) ((screenHeight-800)*ori);
         this.rect.bottom = (float)(this.rect.top+150);
         this.speed = 2;
-        this.life = 3;
+        this.life = 6;
         this.y_dir = 1;
     }
     public void move(){

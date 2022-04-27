@@ -23,7 +23,7 @@ public class BulletSprite extends Sprite{
         this.rect.bottom += y_dir*speed;
     }
 
-    public void onDraw(Component component, Canvas canvas, PixelMapHolder pixelHolder, List<Sprite> sprites){
+    public void onDraw(Component component, Canvas canvas, PixelMapHolder pixelHolder){
 //        for(Sprite s:sprites)
 //        {
 //            destroy(s);

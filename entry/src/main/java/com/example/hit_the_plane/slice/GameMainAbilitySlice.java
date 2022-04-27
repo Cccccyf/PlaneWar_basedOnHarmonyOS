@@ -10,7 +10,6 @@ import ohos.os.ProcessManager;
 public class GameMainAbilitySlice extends AbilitySlice {
     private Button startGame;
     private Button rankList;
-    private Button musicOnOff;
     private Button exit;
     @Override
     public void onStart(Intent intent){
@@ -23,11 +22,11 @@ public class GameMainAbilitySlice extends AbilitySlice {
     public void initView(){
         startGame = (Button)findComponentById(ResourceTable.Id_start_game);
         rankList = (Button)findComponentById(ResourceTable.Id_rank_list);
-        musicOnOff = (Button)findComponentById(ResourceTable.Id_music_on_off);
         exit = (Button)findComponentById(ResourceTable.Id_exit);
     }
 
     public void initListener(){
+        startGame.setClickedListener(listener->present(new GameAbilitySlice(),new Intent()));
         exit.setClickedListener(new Component.ClickedListener() {
             @Override
             public void onClick(Component component){

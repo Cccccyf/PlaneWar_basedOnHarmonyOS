@@ -32,16 +32,6 @@
         ohos:layout_alignment="center"
         ohos:text_size="35vp"/>
     <Button
-        ohos:id="$+id:music_on_off"
-        ohos:top_padding="$float:componentPadding"
-        ohos:bottom_padding="$float:componentPadding"
-        ohos:height="112vp"
-        ohos:width="match_content"
-        ohos:text_color="white"
-        ohos:text="$string:turn_on_off_music"
-        ohos:layout_alignment="center"
-        ohos:text_size="35vp"/>
-    <Button
         ohos:id="$+id:exit"
         ohos:top_padding="$float:componentPadding"
         ohos:bottom_padding="$float:componentPadding"

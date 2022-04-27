@@ -9,8 +9,6 @@ import ohos.agp.utils.RectFloat;
 import ohos.app.Context;
 import ohos.global.resource.NotExistException;
 import ohos.global.resource.Resource;
-import ohos.hiviewdfx.HiLog;
-import ohos.hiviewdfx.HiLogLabel;
 import ohos.media.image.ImageSource;
 import ohos.media.image.PixelMap;
 import ohos.media.image.common.PixelFormat;
@@ -27,9 +25,11 @@ import java.util.*;
 public class GameView extends Component implements Component.DrawTask, Component.TouchEventListener{
     //游戏状态(进行中/结束)
     public static final int STATUS_RUN = 1; //运行中
-    public static final int STATUS_PAUSE = 2; //暂停
-    public static final int STATUS_OVER = 3; //结束
-    public int status = STATUS_OVER; //默认为结束状态
+    public static final int STATUS_OVER = 250; //结束
+    public int status;
+
+    //数据库连接
+    //public SqlOperation sqlOperation;
 
     //为每一个sprite创建位图
     public PixelMap planePixel = getPixelMap(ResourceTable.Media_plane);
@@ -38,13 +38,14 @@ public class GameView extends Component implements Component.DrawTask, Component
     public PixelMap blueBulletPixel = getPixelMap(ResourceTable.Media_blue_bullet);
     public PixelMap middlePixel = getPixelMap(ResourceTable.Media_middle);
     public PixelMap yellowBulletPixel = getPixelMap(ResourceTable.Media_yellow_bullet);
-    public PixelMap bombAwardPixel = getPixelMap(ResourceTable.Media_bomb_award);
     public PixelMap bgPixel = getPixelMap(ResourceTable.Media_bg);
     public PixelMap bombPixel = getPixelMap(ResourceTable.Media_bomb);
+    public PixelMap bossPixel = getPixelMap(ResourceTable.Media_cr);
+    public PixelMap explosionPixel = getPixelMap(ResourceTable.Media_explosion);
 
     //pixelMapHolder(未创建类的)
     private final PixelMapHolder bgHolder = new PixelMapHolder(bgPixel);
-    private final PixelMapHolder bombHolder = new PixelMapHolder(bombPixel);
+    private final PixelMapHolder explosion = new PixelMapHolder(explosionPixel);
 
     //屏幕宽高
     public int screenWidth;
@@ -52,10 +53,6 @@ public class GameView extends Component implements Component.DrawTask, Component
 
     //绘制背景的矩形
     private RectFloat recBg;
-
-
-    //储存己方战机和Boss(?)
-    public List<Sprite> sprites = new ArrayList<Sprite>();
 
     //创建己方战机子弹
     public List<BulletSprite> planeBullets = new ArrayList<>();
@@ -75,7 +72,7 @@ public class GameView extends Component implements Component.DrawTask, Component
     public int x, y;
     public MmiPoint point;
 
-    //用于计算(帧数)，判断是否进行某种行为
+    //用于判断是否进行某种行为
     public int frame = 0;
 
     //得分
@@ -90,12 +87,16 @@ public class GameView extends Component implements Component.DrawTask, Component
 
     public GameView(Context context) {
         super(context);
+        //初始化游戏运行状态
+        this.status = STATUS_RUN;
+        //初始化数据库连接
+        //sqlOperation = new SqlOperation(context);
         //初始化屏幕长宽
         screenWidth = getScreenWidth(context);
         screenHeight = getScreenHeight(context);
         recBg = new RectFloat(0, 0, screenWidth, screenHeight);
         //boss初始化
-        boss= new BossSprite(bigPixel, screenWidth, screenHeight);
+        boss= new BossSprite(bossPixel, screenWidth, screenHeight);
         //画笔
         textPaint.setTextSize(50);
 
@@ -106,131 +107,47 @@ public class GameView extends Component implements Component.DrawTask, Component
 
         //设置监听
         setTouchEventListener(this::onTouchEvent);
+        //setDoubleClickedListener(this::onDoubleClick);
     }
 
     @Override
     public void onDraw(Component component, Canvas canvas) {
-            //生成敌方战机
-            if (frame % 100 == 1) {
-                if(frame%500==1&&frame!=1){
-                    addBigSprite();
-                }else if(frame%300==1){
-                    addMiddleSprite();
-                }else {
-                    addSmallSprite();
-                }
-            }
+        //生成敌方战机
+        addEnemy();
 
-            //己方战机发射子弹
-            if (frame % 10 == 0) {
-                shoot(planeSprite, planeBullets, blueBulletPixel, 50);
-            }
+        //己方战机发射子弹
+        planeShoot();
 
-            //敌方战机发射子弹
-            if (frame % 50 == 0) {
-                for (SmallSprite each : smallPlanes) {
-                    if (each.visibility) {
-                        shoot(each, enemyBullets, yellowBulletPixel, 20);
-                    }
-                }
-                for (MiddleSprite each : middlePlanes) {
-                    if (each.visibility) {
-                        shoot(each, enemyBullets, yellowBulletPixel, 20);
-                    }
-                }
-                for (BigSprite each : bigPlanes) {
-                    if (each.visibility) {
-                        shoot(each, enemyBullets, yellowBulletPixel, 20);
-                    }
-                }
-            }
+        //敌方战机发射子弹
+        enemyShoot();
 
-            //frame++
-            this.frame += 1;
+        //frame++
+        this.frame += 1;
 
+        //绘制背景
+        canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
 
+        //判断己方子弹是否击中敌机
+        hitEnemy();
 
-            //绘制背景
-            canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
+        //判断己方是否被击中
+        hitedByEnemy();
 
-            //判断己方子弹是否击中敌机
-            for (SmallSprite sprite : smallPlanes) {
-                if(sprite.pixelMap!=null) {
-                    for (BulletSprite blue : planeBullets) {
-                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                            blue.pixelMap = null;
-                            sprite.life--;
-                        }
-                    }
-                }
-            }
-            for (MiddleSprite sprite : middlePlanes) {
-                if(sprite.pixelMap!=null) {
-                    for (BulletSprite blue : planeBullets) {
-                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                            blue.pixelMap = null;
-                            sprite.life--;
-                        }
-                    }
-                }
-            }
-            for (BigSprite sprite : bigPlanes) {
-                if(sprite.pixelMap!=null) {
-                    for (BulletSprite blue : planeBullets) {
-                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                            blue.pixelMap = null;
-                            sprite.life--;
-                        }
-                    }
-                }
-            }
-            for(BulletSprite blue:planeBullets) {
-                if (boss.pixelMap != null&&isIntersect(blue,boss)){
-                    blue.pixelMap = null;
-                    boss.life--;
-                }
-            }
+        //己方与Boss的绘制
+        planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
+        boss.onDraw(component,canvas,boss.rect,boss.pixelMapHolder);
 
-            //判断己方是否被击中
-            for (BulletSprite yellow : enemyBullets) {
-                if (yellow.pixelMap != null && isIntersect(yellow, planeSprite)) {
-                    yellow.pixelMap = null;
-                    planeSprite.life--;
-                }
-            }
+        //己方子弹的绘制
+        drawBullets(component,canvas,planeBullets);
 
-            //己方与Boss的绘制
-            planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
-            boss.onDraw(component,canvas,boss.rect,boss.pixelMapHolder);
+        //敌机(小兵)的绘制
+        drawEnemy(component,canvas);
 
-            //己方子弹的绘制
-            for (BulletSprite each : planeBullets) {
-                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-            }
+        //敌方子弹的绘制
+        drawBullets(component,canvas,enemyBullets);
 
-            //敌机(小兵)的绘制
-            for (SmallSprite each : smallPlanes) {
-                if(each.visibility){
-                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                }
-            }
-            for (MiddleSprite each : middlePlanes) {
-                if(each.visibility){
-                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                }
-            }
-            for (BigSprite each : bigPlanes) {
-                if(each.visibility) {
-                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                }
-            }
-
-            //敌方子弹的绘制
-            for (BulletSprite each : enemyBullets) {
-                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-            }
-            drawScore(canvas);
-            drawLife(canvas);
+        drawScore(canvas);
+        drawLife(canvas);
     }
 
     private void Init() {
@@ -239,23 +156,260 @@ public class GameView extends Component implements Component.DrawTask, Component
 
     @Override
     public boolean onTouchEvent(Component component, TouchEvent touchEvent) {
-        //生成敌方战机
+        if(planeSprite.life>=0) {
+            //生成敌方战机
+            addEnemy();
+
+            //己方战机发射子弹
+            planeShoot();
+
+            //敌方战机发射子弹
+            enemyShoot();
+
+            //frame++
+            this.frame += 1;
+
+            switch (touchEvent.getAction()) {
+                case TouchEvent.PRIMARY_POINT_DOWN:
+                    //获取触摸屏幕时手指的位置
+                    point = touchEvent.getPointerPosition(touchEvent.getIndex());
+                    x = (int) point.getX();
+                    y = (int) point.getY();
+
+                    DrawTask nDrawTask = new DrawTask() {
+                        public void onDraw(Component component, Canvas canvas) {
+                            canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
+                            if (planeSprite.life > 0) {
+                                //判断敌方被击中
+                                hitEnemy();
+
+                                //判断己方被击中
+                                hitedByEnemy();
+
+                                //己方和boss的绘制
+                                planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
+                                boss.onDraw(component, canvas, boss.rect, boss.pixelMapHolder);
+
+                                //己方子弹的绘制
+                                drawBullets(component, canvas, planeBullets);
+
+                                //敌机(小兵)的绘制
+                                drawEnemy(component, canvas);
+
+                                //敌方子弹的绘制
+                                drawBullets(component, canvas, enemyBullets);
+
+                                drawScore(canvas);
+                                drawLife(canvas);
+                            } else {
+                                planeSprite.setOriginalRect(new RectFloat(0, planeSprite.rect.top, screenWidth, planeSprite.rect.bottom));
+                                planeSprite.pixelMapHolder = explosion;
+                                planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
+                                boss.onDraw(component, canvas, boss.rect, boss.pixelMapHolder);
+                                drawEnemy(component, canvas);
+                                drawScore(canvas);
+                                drawLife(canvas);
+                            }
+                        }
+                    };
+                    addDrawTask(nDrawTask);
+                    if(planeSprite.life == 0) planeSprite.life--;
+                    return true;
+                case TouchEvent.POINT_MOVE:
+                    MmiPoint new_point = touchEvent.getPointerPosition(touchEvent.getIndex());
+                    int deltaX = (int) new_point.getX() - x;
+                    int deltaY = (int) new_point.getY() - y;
+                    x = (int) new_point.getX();
+                    y = (int) new_point.getY();
+                    if (planeSprite.rect.left + deltaX >= 0 && planeSprite.rect.right + deltaX <= screenWidth && planeSprite.rect.top + deltaY >= 0 && planeSprite.rect.bottom + deltaY <= screenHeight) {
+                        planeSprite.rect.left = planeSprite.rect.left + deltaX;
+                        planeSprite.rect.right = planeSprite.rect.right + deltaX;
+                        planeSprite.rect.top = planeSprite.rect.top + deltaY;
+                        planeSprite.rect.bottom = planeSprite.rect.bottom + deltaY;
+                    }
+
+                    //判断碰撞事件
+                    if (isIntersect(planeSprite, boss)) {
+                        planeSprite.life--;
+                        boss.life--;
+                    }
+                    for (SmallSprite sprite : smallPlanes) {
+                        if (sprite.pixelMap != null && isIntersect(sprite, planeSprite)) {
+                            sprite.life--;
+                            planeSprite.life--;
+                        }
+                    }
+                    for (MiddleSprite sprite : middlePlanes) {
+                        if (sprite.pixelMap != null && isIntersect(sprite, planeSprite)) {
+                            sprite.life--;
+                            planeSprite.life--;
+                        }
+                    }
+                    for (BigSprite sprite : bigPlanes) {
+                        if (sprite.pixelMap != null && isIntersect(sprite, planeSprite)) {
+                            sprite.life--;
+                            planeSprite.life--;
+                        }
+                    }
+
+                    DrawTask mDrawTask = new DrawTask() {
+                        public void onDraw(Component component, Canvas canvas) {
+                            canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
+                            if (planeSprite.life > 0) {
+                                //敌方被击中
+                                hitEnemy();
+
+                                //己方被击中
+                                hitedByEnemy();
+
+                                planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
+                                boss.onDraw(component, canvas, boss.rect, boss.pixelMapHolder);
+
+                                //己方子弹的绘制
+                                drawBullets(component, canvas, planeBullets);
+
+                                //敌机(小兵)的绘制
+                                drawEnemy(component, canvas);
+
+                                //敌方子弹的绘制
+                                drawBullets(component, canvas, enemyBullets);
+
+                                drawScore(canvas);
+                                drawLife(canvas);
+                            } else {
+                                paint.setTextSize(100);
+                                canvas.drawText(paint,"单击返回主界面",screenWidth/2-350,screenHeight/2);
+                                planeSprite.setOriginalRect(new RectFloat(0, planeSprite.rect.top, screenWidth, planeSprite.rect.bottom));
+                                planeSprite.pixelMapHolder = explosion;
+                                planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
+                                boss.onDraw(component, canvas, boss.rect, boss.pixelMapHolder);
+                                drawEnemy(component, canvas);
+                                drawScore(canvas);
+                                drawLife(canvas);
+                            }
+                        }
+                    };
+                    addDrawTask(mDrawTask);
+                    if(planeSprite.life == 0) planeSprite.life--;
+                    return true;
+            }
+            return false;
+        }else {
+            if (touchEvent.getAction() == TouchEvent.PRIMARY_POINT_DOWN) {
+                DrawTask end = new DrawTask() {
+                    @Override
+                    public void onDraw(Component component, Canvas canvas) {
+                        canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
+                        canvas.drawPixelMapHolderRect(boss.pixelMapHolder, boss.rect, paint);
+                        for (SmallSprite sprite : smallPlanes) {
+                            if (sprite.pixelMap != null) {
+                                canvas.drawPixelMapHolderRect(sprite.pixelMapHolder, sprite.rect, paint);
+                            }
+                        }
+                        for (MiddleSprite sprite : middlePlanes) {
+                            if (sprite.pixelMap != null) {
+                                canvas.drawPixelMapHolderRect(sprite.pixelMapHolder, sprite.rect, paint);
+                            }
+                        }
+                        for (BigSprite sprite : bigPlanes) {
+                            if (sprite.pixelMap != null) {
+                                canvas.drawPixelMapHolderRect(sprite.pixelMapHolder, sprite.rect, paint);
+                            }
+                        }
+                    }
+                };
+                addDrawTask(end);
+                planeSprite.life--;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    /*
+    显示分数
+     */
+    public void drawScore(Canvas canvas){
+        String text = "分数：" + this.score;
+        canvas.drawText(textPaint,text,100,100);
+    }
+
+    /*
+    显示剩余生命值
+     */
+    public void drawLife(Canvas canvas){
+        String text = "生命值：" + planeSprite.life;
+        canvas.drawText(textPaint,text,100,screenHeight-300);
+    }
+
+
+    /*
+    添加敌方战机
+     */
+    public void addSmallSprite () {
+        SmallSprite enemy = new SmallSprite(smallPixel, screenWidth, screenHeight);
+        smallPlanes.add(enemy);
+    }
+
+    public void addMiddleSprite(){
+        MiddleSprite enemy = new MiddleSprite(middlePixel,screenWidth,screenHeight);
+        middlePlanes.add(enemy);
+    }
+
+    public void addBigSprite(){
+        BigSprite enemy = new BigSprite(bigPixel,screenWidth,screenHeight);
+        bigPlanes.add(enemy);
+    }
+
+    public void addEnemy(){
         if (frame % 100 == 1) {
-            if(frame%500==1&&frame!=1){
+            if (frame % 500 == 1 && frame != 1) {
                 addBigSprite();
-            }else if(frame%300==1){
+            } else if (frame % 300 == 1) {
                 addMiddleSprite();
-            }else {
+            } else {
                 addSmallSprite();
             }
         }
+    }
 
-        //己方战机发射子弹
+    /*
+    发射普通子弹
+     */
+    public void shoot(Sprite sprite,List<BulletSprite> bullets,PixelMap pixel,int speed){
+        RectFloat rectBullet = new RectFloat((sprite.rect.left+sprite.rect.right)/2-15,sprite.rect.top-25,
+                (sprite.rect.left+sprite.rect.right)/2+15,sprite.rect.top+25);
+        BulletSprite bullet = new BulletSprite(pixel,screenWidth,screenHeight,rectBullet,sprite.y_dir,speed);
+        bullets.add(bullet);
+    }
+
+    /*
+    发射导弹
+     */
+    public void missileShoot(Sprite sprite,List<BulletSprite> bullets,PixelMap pixel,int speed){
+        RectFloat rectBullet = new RectFloat((sprite.rect.left+sprite.rect.right)/2-30,sprite.rect.top-40,
+                (sprite.rect.left+sprite.rect.right)/2+30,sprite.rect.top+40);
+        BulletSprite bullet = new BulletSprite(pixel,screenWidth,screenHeight,rectBullet,sprite.y_dir,speed);
+        bullets.add(bullet);
+    }
+
+    /*
+    己方发射子弹
+     */
+    public void planeShoot(){
         if (frame % 10 == 0) {
-            shoot(planeSprite, planeBullets, blueBulletPixel, 50);
+            if(Math.random()<0.05){
+                missileShoot(planeSprite,planeBullets,bombPixel,30);
+            }else {
+                shoot(planeSprite, planeBullets, blueBulletPixel, 50);
+            }
         }
+    }
 
-        //敌方战机发射子弹
+    /*
+    敌方发射子弹
+     */
+    public void enemyShoot(){
         if (frame % 50 == 0) {
             for (SmallSprite each : smallPlanes) {
                 if (each.visibility) {
@@ -273,369 +427,113 @@ public class GameView extends Component implements Component.DrawTask, Component
                 }
             }
         }
+    }
 
-        //frame++
-        this.frame += 1;
-        switch (touchEvent.getAction()) {
-            case TouchEvent.PRIMARY_POINT_DOWN:
-                point = touchEvent.getPointerPosition(touchEvent.getIndex());
-                x = (int) point.getX();
-                y = (int) point.getY();
-                DrawTask nDrawTask = new DrawTask() {
-                    public void onDraw(Component component, Canvas canvas) {
-                        canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
-                        if (planeSprite.life > 0) {
-                            //判断敌方被击中
-                            for (SmallSprite sprite : smallPlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for (MiddleSprite sprite : middlePlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for (BigSprite sprite : bigPlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for(BulletSprite blue:planeBullets) {
-                                if (boss.pixelMap != null&&isIntersect(blue,boss)){
-                                    blue.pixelMap = null;
-                                    score+=1;
-                                    boss.life--;
-                                }
-                            }
-                            //判断己方被击中
-                            for(BulletSprite yellow:enemyBullets){
-                                if(yellow.pixelMap!=null&&isIntersect(yellow,planeSprite)){
-                                    yellow.pixelMap = null;
-                                    planeSprite.life--;
-                                }
-                            }
-
-                            planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
-                            boss.onDraw(component,canvas,boss.rect,boss.pixelMapHolder);
-
-                            //己方子弹的绘制
-                            for (BulletSprite each : planeBullets) {
-                                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-                            }
-
-                            //敌机(小兵)的绘制
-                            for (SmallSprite each : smallPlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-                            for (MiddleSprite each : middlePlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-                            for (BigSprite each : bigPlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-
-                            //敌方子弹的绘制
-                            for (BulletSprite each : enemyBullets) {
-                                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-                            }
-                            drawScore(canvas);
-                            drawLife(canvas);
-                        } else {
-                            planeSprite.setOriginalRect(new RectFloat(0, planeSprite.rect.top, screenWidth, planeSprite.rect.bottom));
-                            planeSprite.pixelMapHolder = bombHolder;
-                            for (Sprite each : sprites) {
-                                each.onDraw(component, canvas, each.rect, each.pixelMapHolder);
-                            }
-                        }
-                    }
-                };
-                addDrawTask(nDrawTask);
-                HiLogLabel label = new HiLogLabel(HiLog.LOG_APP, 0x00201, "TAG");
-                HiLog.info(label, "TOUCHEVENT POINT DOWN");
-                return true;
-            case TouchEvent.POINT_MOVE:
-                MmiPoint new_point = touchEvent.getPointerPosition(touchEvent.getIndex());
-                int deltaX = (int) new_point.getX() - x;
-                int deltaY = (int) new_point.getY() - y;
-                x = (int) new_point.getX();
-                y = (int) new_point.getY();
-                if (planeSprite.rect.left + deltaX >= 0 && planeSprite.rect.right + deltaX <= screenWidth && planeSprite.rect.top + deltaY >= 0 && planeSprite.rect.bottom + deltaY <= screenHeight) {
-                    planeSprite.rect.left = planeSprite.rect.left + deltaX;
-                    planeSprite.rect.right = planeSprite.rect.right + deltaX;
-                    planeSprite.rect.top = planeSprite.rect.top + deltaY;
-                    planeSprite.rect.bottom = planeSprite.rect.bottom + deltaY;
-                }
-
-                //判断碰撞事件
-                if (isIntersect(planeSprite, boss)) {
-                    planeSprite.life--;
-                    boss.life--;
-                }
-                for(SmallSprite sprite:smallPlanes){
-                    if(sprite.pixelMap!=null&&isIntersect(sprite,planeSprite)){
-                        sprite.life--;
-                        planeSprite.life--;
-                    }
-                }
-                for(MiddleSprite sprite:middlePlanes){
-                    if(sprite.pixelMap!=null&&isIntersect(sprite,planeSprite)){
-                        sprite.life--;
-                        planeSprite.life--;
-                    }
-                }
-                for(BigSprite sprite:bigPlanes){
-                    if(sprite.pixelMap!=null&&isIntersect(sprite,planeSprite)){
-                        sprite.life--;
-                        planeSprite.life--;
-                    }
-                }
-
-                DrawTask mDrawTask = new DrawTask() {
-                    public void onDraw(Component component, Canvas canvas) {
-                        canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
-                        if (planeSprite.life > 0) {
-                            //敌方被击中
-                            for (SmallSprite sprite : smallPlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for (MiddleSprite sprite : middlePlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for (BigSprite sprite : bigPlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for(BulletSprite blue:planeBullets) {
-                                if (boss.pixelMap != null&&isIntersect(blue,boss)){
-                                    blue.pixelMap = null;
-                                    score+=1;
-                                    boss.life--;
-                                }
-                            }
-                            //己方被击中
-                            for(BulletSprite yellow:enemyBullets){
-                                if(yellow.pixelMap!=null&&isIntersect(yellow,planeSprite)){
-                                    yellow.pixelMap = null;
-                                    planeSprite.life--;
-                                }
-                            }
-
-                            planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
-                            boss.onDraw(component,canvas,boss.rect,boss.pixelMapHolder);
-
-                            //己方子弹的绘制
-                            for (BulletSprite each : planeBullets) {
-                                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-                            }
-
-                            //敌机(小兵)的绘制
-                            for (SmallSprite each : smallPlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-                            for (MiddleSprite each : middlePlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-                            for (BigSprite each : bigPlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-
-                            //敌方子弹的绘制
-                            for (BulletSprite each : enemyBullets) {
-                                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-                            }
-                            drawScore(canvas);
-                            drawLife(canvas);
-                        } else {
-                            planeSprite.setOriginalRect(new RectFloat(0, planeSprite.rect.top, screenWidth, planeSprite.rect.bottom));
-                            planeSprite.pixelMapHolder = bombHolder;
-                            for (Sprite each : sprites) {
-                                each.onDraw(component, canvas, each.rect, each.pixelMapHolder);
-                            }
-                        }
-                    }
-                };
-                if (!(planeSprite.life < 0)) {
-                    addDrawTask(mDrawTask);
-                    label = new HiLogLabel(HiLog.LOG_APP, 0x00201, "TAG");
-                    HiLog.info(label, "生命值：" + planeSprite.life);
-                }
-                return true;
-            default:
-                DrawTask yDrawTask = new DrawTask() {
-                    public void onDraw(Component component, Canvas canvas) {
-                        canvas.drawPixelMapHolderRect(bgHolder, recBg, paint);
-                        if (planeSprite.life > 0) {
-                            //敌方被击中
-                            for (SmallSprite sprite : smallPlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for (MiddleSprite sprite : middlePlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for (BigSprite sprite : bigPlanes) {
-                                if(sprite.pixelMap!=null) {
-                                    for (BulletSprite blue : planeBullets) {
-                                        if (blue.pixelMap != null && isIntersect(sprite, blue)) {
-                                            blue.pixelMap = null;
-                                            sprite.life--;
-                                        }
-                                    }
-                                }
-                            }
-                            for(BulletSprite blue:planeBullets) {
-                                if (boss.pixelMap != null&&isIntersect(blue,boss)){
-                                    blue.pixelMap = null;
-                                    score+=1;
-                                    boss.life--;
-                                }
-                            }
-                            //己方被击中
-                            for(BulletSprite yellow:enemyBullets){
-                                if(yellow.pixelMap!=null&&isIntersect(yellow,planeSprite)){
-                                    yellow.pixelMap = null;
-                                    planeSprite.life--;
-                                }
-                            }
-
-                            planeSprite.onDraw(component, canvas, planeSprite.rect, planeSprite.pixelMapHolder);
-                            boss.onDraw(component,canvas,boss.rect,boss.pixelMapHolder);
-
-                            //己方子弹的绘制
-                            for (BulletSprite each : planeBullets) {
-                                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-                            }
-
-                            //敌机(小兵)的绘制
-                            for (SmallSprite each : smallPlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-                            for (MiddleSprite each : middlePlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-                            for (BigSprite each : bigPlanes) {
-                                if(each.visibility){
-                                    score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
-                                }
-                            }
-
-                            //敌方子弹的绘制
-                            for (BulletSprite each : enemyBullets) {
-                                each.onDraw(component, canvas, each.pixelMapHolder, sprites);
-                            }
-                            drawScore(canvas);
-                            drawLife(canvas);
-                        } else {
-                            planeSprite.setOriginalRect(new RectFloat(0, planeSprite.rect.top, screenWidth, planeSprite.rect.bottom));
-                            planeSprite.pixelMapHolder = bombHolder;
-                            for (Sprite each : sprites) {
-                                each.onDraw(component, canvas, each.rect, each.pixelMapHolder);
-                            }
-                        }
-                    }
-                };
-                addDrawTask(yDrawTask);
-                return true;
+    /*
+    子弹的绘制
+     */
+    public void drawBullets(Component component,Canvas canvas,List<BulletSprite> sprites){
+        for (BulletSprite each :sprites) {
+            each.onDraw(component, canvas, each.pixelMapHolder);
+        }
+    }
+    /*
+    绘制敌方战机
+     */
+    public void drawEnemy(Component component,Canvas canvas){
+        for (SmallSprite each : smallPlanes) {
+            if(each.visibility){
+                score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
+            }
+        }
+        for (MiddleSprite each : middlePlanes) {
+            if(each.visibility){
+                score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
+            }
+        }
+        for (BigSprite each : bigPlanes) {
+            if(each.visibility){
+                score = each.onDraw(component, canvas, each.rect, each.pixelMapHolder, score);
+            }
         }
     }
 
-    public void drawScore(Canvas canvas){
-        String text = "分数：" + this.score;
-        canvas.drawText(textPaint,text,100,100);
-    }
-    public void drawLife(Canvas canvas){
-        String text = "生命值：" + planeSprite.life;
-        canvas.drawText(textPaint,text,100,screenHeight-300);
+    /*
+    子弹击中敌方
+    */
+    public void hitEnemy(){
+        for (SmallSprite sprite : smallPlanes) {
+            if(sprite.pixelMap!=null) {
+                for (BulletSprite blue : planeBullets) {
+                    if (blue.pixelMap != null && isIntersect(sprite, blue)) {
+                        if(blue.pixelMap==bombPixel) {
+                            blue.pixelMap = null;
+                            sprite.life -= 5;
+                        }else {
+                            blue.pixelMap = null;
+                            sprite.life--;
+                        }
+                    }
+                }
+            }
+        }
+        for (MiddleSprite sprite : middlePlanes) {
+            if(sprite.pixelMap!=null) {
+                for (BulletSprite blue : planeBullets) {
+                    if (blue.pixelMap != null && isIntersect(sprite, blue)) {
+                        if(blue.pixelMap==bombPixel) {
+                            blue.pixelMap = null;
+                            sprite.life -= 5;
+                        }else {
+                            blue.pixelMap = null;
+                            sprite.life--;
+                        }
+                    }
+                }
+            }
+        }
+        for (BigSprite sprite : bigPlanes) {
+            if(sprite.pixelMap!=null) {
+                for (BulletSprite blue : planeBullets) {
+                    if (blue.pixelMap != null && isIntersect(sprite, blue)) {
+                        if(blue.pixelMap==bombPixel) {
+                            blue.pixelMap = null;
+                            sprite.life -= 5;
+                        }else {
+                            blue.pixelMap = null;
+                            sprite.life--;
+                        }
+                    }
+                }
+            }
+        }
+        for(BulletSprite blue:planeBullets) {
+            if(blue.pixelMap!=null) {
+                if (boss.pixelMap != null && isIntersect(blue, boss)) {
+                    if(blue.pixelMap==bombPixel) {
+                        blue.pixelMap = null;
+                        boss.life -= 5;
+                        score += 5;
+                    }else {
+                        blue.pixelMap = null;
+                        boss.life--;
+                        score += 1;
+                    }
+                }
+            }
+        }
     }
 
-
-    //添加敌方战机
-    public void addSmallSprite () {
-        SmallSprite enemy = new SmallSprite(smallPixel, screenWidth, screenHeight);
-        smallPlanes.add(enemy);
-    }
-
-    public void addMiddleSprite(){
-        MiddleSprite enemy = new MiddleSprite(middlePixel,screenWidth,screenHeight);
-        middlePlanes.add(enemy);
-    }
-
-    public void addBigSprite(){
-        BigSprite enemy = new BigSprite(bigPixel,screenWidth,screenHeight);
-        bigPlanes.add(enemy);
-    }
-
-    //发射子弹
-    public void shoot(Sprite sprite,List<BulletSprite> bullets,PixelMap pixel,int speed){
-        RectFloat rectBullet = new RectFloat((sprite.rect.left+sprite.rect.right)/2-15,sprite.rect.top-25,
-                (sprite.rect.left+sprite.rect.right)/2+15,sprite.rect.top+25);
-        BulletSprite bullet = new BulletSprite(pixel,screenWidth,screenHeight,rectBullet,sprite.y_dir,speed);
-        bullets.add(bullet);
+    /*
+    被敌方击中
+     */
+    public void hitedByEnemy(){
+        for (BulletSprite yellow : enemyBullets) {
+            if (yellow.pixelMap != null && isIntersect(yellow, planeSprite)) {
+                yellow.pixelMap = null;
+                planeSprite.life--;
+            }
+        }
     }
 
     /**

@@ -70,7 +70,7 @@
     },
     {
       "name": "send_verify_code",
-      "value":"发送验证码"
+      "value": "发送验证码"
     },
     {
       "name": "verify_code",
@@ -95,6 +95,10 @@
     {
       "name": "loginFail",
       "value": "错误的用户名或密码"
+    },
+    {
+      "name": "dataability_description",
+      "value": "hap sample empty provider"
     }
   ]
 }

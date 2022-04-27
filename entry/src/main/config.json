@@ -40,6 +40,18 @@
         "label": "$string:entry_MainAbility",
         "type": "page",
         "launchType": "standard"
+      },
+      {
+        "name": "com.example.hit_the_plane.DataAbility",
+        "icon": "$media:icon",
+        "description": "$string:dataability_description",
+        "type": "data",
+        "uri": "dataability://com.example.hit_the_plane.DataAbility"
+      }
+    ],
+    "defPermissions": [
+      {
+        "name": "com.example.hit_the_plane.DataAbilityShellProvider.PROVIDER"
       }
     ]
   }

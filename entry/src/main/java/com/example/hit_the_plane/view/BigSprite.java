@@ -16,7 +16,7 @@ public class BigSprite extends Sprite{
         this.rect.top = (float) ((screenHeight-800)*ori);
         this.rect.bottom = (float)(this.rect.top+250);
         this.speed = 1;
-        this.life = 5;
+        this.life = 10;
         this.y_dir = 1;
     }
     public void move(){

@@ -16,7 +16,7 @@ public class SmallSprite extends Sprite {
         this.rect.top = (float) ((screenHeight-800)*ori);
         this.rect.bottom = (float)(this.rect.top+100);
         this.speed = 3;
-        this.life = 2;
+        this.life = 3;
         this.y_dir = 1;
     }
     public void move(){
