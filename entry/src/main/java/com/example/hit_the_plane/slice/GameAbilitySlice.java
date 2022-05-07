@@ -63,8 +63,6 @@ public class GameAbilitySlice extends AbilitySlice  implements Component.Clicked
         if(gameView.planeSprite.life < -1 ){
             insert(gameView.score,getTime());
             HiLog.info(label,"database insert "+getTime()+" "+gameView.score);
-            //query();
-            //update();
             present(new GameMainAbilitySlice(),new Intent());
         }
     }
@@ -92,29 +90,6 @@ public class GameAbilitySlice extends AbilitySlice  implements Component.Clicked
             }
         } catch (DataAbilityRemoteException | IllegalStateException exception) {
             HiLog.info(label, "insert: dataRemote exception|illegalStateException");
-        }
-    }
-
-    private void query() {
-        String[] columns = new String[] {DB_COLUMN_TIME,DB_COLUMN_SCORE};
-        // 构造查询条件
-        DataAbilityPredicates predicates = new DataAbilityPredicates();
-        predicates.between("score",0,99999);// 查询分数段
-        try {
-            ResultSet resultSet = databaseHelper.query(Uri.parse(BASE_URI + DATA_PATH),
-                    columns, predicates);
-            if (resultSet == null || resultSet.getRowCount() == 0) {
-                HiLog.info(label, "query: resultSet is null or no result found");
-                return;
-            }
-            resultSet.goToFirstRow();
-            do {
-                int score = resultSet.getInt(resultSet.getColumnIndexForName(DB_COLUMN_SCORE));
-                String time = resultSet.getString(resultSet.getColumnIndexForName(DB_COLUMN_TIME));
-                HiLog.info(label, "query: time :" + time + " score :" + score);
-            } while (resultSet.goToNextRow());
-        } catch (DataAbilityRemoteException | IllegalStateException exception) {
-            HiLog.info(label, "query: dataRemote exception | illegalStateException");
         }
     }
 }

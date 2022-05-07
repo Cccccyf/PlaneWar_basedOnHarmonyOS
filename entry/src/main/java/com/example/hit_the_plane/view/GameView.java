@@ -89,8 +89,6 @@ public class GameView extends Component implements Component.DrawTask, Component
         super(context);
         //初始化游戏运行状态
         this.status = STATUS_RUN;
-        //初始化数据库连接
-        //sqlOperation = new SqlOperation(context);
         //初始化屏幕长宽
         screenWidth = getScreenWidth(context);
         screenHeight = getScreenHeight(context);
@@ -107,7 +105,6 @@ public class GameView extends Component implements Component.DrawTask, Component
 
         //设置监听
         setTouchEventListener(this::onTouchEvent);
-        //setDoubleClickedListener(this::onDoubleClick);
     }
 
     @Override

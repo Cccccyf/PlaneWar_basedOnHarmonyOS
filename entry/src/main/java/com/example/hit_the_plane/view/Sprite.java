@@ -23,7 +23,7 @@ public class Sprite {
     public int width;
     public int height;
 
-    //移动种子
+    //移动速度
     public int speed;
 
     //可见性
